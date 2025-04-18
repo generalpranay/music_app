@@ -1,24 +1,19 @@
-import React from 'react';
+'use client';
 
-const MusicList = ({ musicData }) => {
+export default function MusicList({ tracks, onTrackClick }) {
   return (
-    <div>
-      {musicData.tracks.items.map((track) => (
-        <div key={track.id} style={{ marginBottom: '20px' }}>
-          <h3>{track.name}</h3>
-          <p>{track.artists.map((artist) => artist.name).join(', ')}</p>
-          {track.preview_url ? (
-            <audio controls>
-              <source src={track.preview_url} type="audio/mpeg" />
-              Your browser does not support the audio element.
-            </audio>
-          ) : (
-            <p>No preview available</p>
-          )}
+    <div className="space-y-4">
+      {tracks.map((track) => (
+        <div
+          key={track.id}
+          className="border p-4 rounded cursor-pointer hover:bg-gray-100 transition"
+          onClick={() => onTrackClick(track)}
+        >
+          <h3 className="font-semibold">{track.name}</h3>
+          <p>{track.artists.map((a) => a.name).join(', ')}</p>
+          <p className="text-sm text-gray-500">{track.album.name}</p>
         </div>
       ))}
     </div>
   );
-};
-
-export default MusicList;
+}
