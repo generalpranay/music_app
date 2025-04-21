@@ -9,7 +9,6 @@ import ArtistList from './components/ArtistList';
 import { fetchMusicData } from './api/musicAPI'; 
 import Modal from './components/Modal';
 
-
 export default function Home() {
   const [tracks, setTracks] = useState([]);
   const [albums, setAlbums] = useState([]);
@@ -20,7 +19,12 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState('tracks');
   const [modalOpen, setModalOpen] = useState(false);
   const [modalContent, setModalContent] = useState(null);
-
+  const [favorites, setFavorites] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return JSON.parse(localStorage.getItem('favorites')) || [];
+    }
+    return [];
+  });
 
   const handleSearch = async (query) => {
     setLoading(true);
@@ -44,14 +48,14 @@ export default function Home() {
 
   const handleAlbumClick = async (album) => {
     console.log('Clicked album:', album);
-  
+
     const proxy = 'https://cors-anywhere.herokuapp.com/';
     const url = `https://api.deezer.com/album/${album.id}`;
-  
+
     try {
       const res = await fetch(proxy + url);
       const data = await res.json();
-  
+
       setModalContent(
         <div>
           <h2 className="font-bold text-xl mb-2">{data.title}</h2>
@@ -68,7 +72,7 @@ export default function Home() {
                     preview: track.preview,
                     artist: { name: track.artist.name },
                   });
-                  setModalOpen(false); // Close modal on play
+                  setModalOpen(false);
                 }}
               >
                 🎵 {track.title} ({Math.floor(track.duration / 60)}:{(track.duration % 60).toString().padStart(2, '0')})
@@ -86,7 +90,7 @@ export default function Home() {
   const handleArtistClick = async (artist) => {
     const res = await fetch(`/api/artist?id=${artist.id}`);
     const data = await res.json();
-  
+
     setModalContent(
       <div>
         <h2 className="font-bold text-xl mb-2">{artist.name} – Top 10 Tracks</h2>
@@ -103,20 +107,19 @@ export default function Home() {
         </ul>
       </div>
     );
-  
+
     setModalOpen(true);
   };
-  
+
   return (
     <>
-      <main className="p-10 pb-45">
-        <h1 className="text-3xl font-bold mb-6">🎶 DucMix </h1>
+      <main className="p-10 pb-40">
+        <h1 className="text-3xl font-bold mb-6">🎶 DucMix</h1>
 
         <SearchBar onSearch={handleSearch} />
 
-        {/* Tabs */}
         <div className="flex space-x-4 mb-6">
-          {['tracks', 'albums', 'artists'].map((tab) => (
+          {['tracks', 'albums', 'artists', 'favorites'].map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -131,21 +134,23 @@ export default function Home() {
           ))}
         </div>
 
-        {/* Error */}
         {error && <div className="text-red-500 mb-4">{error}</div>}
         {loading && <div className="mb-4">Loading...</div>}
 
-        {/* Tracks */}
         {!loading && activeTab === 'tracks' && (
           <>
-            <MusicList tracks={tracks} onTrackClick={handleTrackClick} />
+            <MusicList
+              tracks={tracks}
+              onTrackClick={handleTrackClick}
+              favorites={favorites}
+              setFavorites={setFavorites}
+            />
             {!tracks.length && !error && (
               <p className="text-gray-500">No tracks found.</p>
             )}
           </>
         )}
 
-        {/* Albums */}
         {!loading && activeTab === 'albums' && (
           <>
             <AlbumList albums={albums} onAlbumClick={handleAlbumClick} />
@@ -155,7 +160,6 @@ export default function Home() {
           </>
         )}
 
-        {/* Artists */}
         {!loading && activeTab === 'artists' && (
           <>
             <ArtistList artists={artists} onArtistClick={handleArtistClick} />
@@ -164,12 +168,31 @@ export default function Home() {
             )}
           </>
         )}
-        {selectedTrack && <MusicPlayer track={selectedTrack} />}
+
+        {!loading && activeTab === 'favorites' && (
+          <>
+            <MusicList
+              tracks={favorites}
+              onTrackClick={handleTrackClick}
+              favorites={favorites}
+              setFavorites={setFavorites}
+            />
+            {!favorites.length && <p className="text-gray-500">No favorites yet.</p>}
+          </>
+        )}
+
+        {selectedTrack && (
+          <MusicPlayer
+            track={selectedTrack}
+            favorites={favorites}
+            setFavorites={setFavorites}
+          />
+        )}
       </main>
 
       <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)}>
         {modalContent}
       </Modal>
-    </> 
+    </>
   );
 }

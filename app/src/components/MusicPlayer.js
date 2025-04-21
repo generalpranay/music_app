@@ -9,13 +9,25 @@ import {
   SkipBack
 } from 'lucide-react';
 
-export default function MusicPlayer({ track }) {
+export default function MusicPlayer({ track, favorites = [], setFavorites }) {
   const audioRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(30);
   const [volume, setVolume] = useState(1);
   const [showVolume, setShowVolume] = useState(false);
+
+  const isFavorite = favorites.some((fav) => fav.id === track.id);
+
+  const toggleFavorite = () => {
+    const updated = isFavorite
+      ? favorites.filter((fav) => fav.id !== track.id)
+      : [...favorites, track];
+
+    setFavorites(updated);
+    localStorage.setItem('favorites', JSON.stringify(updated));
+  };
+
 
   useEffect(() => {
     if (!track?.preview) return;
@@ -136,8 +148,8 @@ export default function MusicPlayer({ track }) {
           className="w-full"
         />
         <span className="text-sm">{Math.floor(duration)}s</span>
-        <div className="relative flex items-center">
-          <button onClick={toggleVolumeSlider} className="bg-white p-2 rounded">
+        <div className="relative flex items-center gap-2">
+          <button onClick={toggleVolumeSlider} className="bg-white p-2 rounded ">
             <Volume2 className="w-5 h-5 text-black" />
           </button>
           {showVolume && (
@@ -160,6 +172,14 @@ export default function MusicPlayer({ track }) {
               </div>
             </div>
           )}
+          <button
+            onClick={toggleFavorite}
+            className={`text-3xl transition ${
+              isFavorite ? 'text-yellow-500' : 'text-white/50 hover:text-yellow-400'
+            }`}
+          >
+            {isFavorite ? '★' : '☆'}
+          </button>
         </div>
       </div>
     </div>
