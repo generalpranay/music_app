@@ -172,7 +172,8 @@ export default function MusicPlayer({ track, favorites = [], setFavorites }) {
               </div>
             </div>
           )}
-          <button
+        </div>
+        <button
             onClick={toggleFavorite}
             className={`text-3xl transition ${
               isFavorite ? 'text-yellow-500' : 'text-white/50 hover:text-yellow-400'
@@ -180,7 +181,6 @@ export default function MusicPlayer({ track, favorites = [], setFavorites }) {
           >
             {isFavorite ? '★' : '☆'}
           </button>
-        </div>
       </div>
     </div>
   );
