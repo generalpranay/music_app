@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Playlist from './components/Playlist';
 import SearchBar from './components/SearchBar';
 import MusicList from './components/MusicList';
 import MusicPlayer from './components/MusicPlayer';
@@ -22,6 +23,12 @@ export default function Home() {
   const [favorites, setFavorites] = useState(() => {
     if (typeof window !== 'undefined') {
       return JSON.parse(localStorage.getItem('favorites')) || [];
+    }
+    return [];
+  });
+  const [playlists, setPlaylists] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return JSON.parse(localStorage.getItem('playlists')) || [];
     }
     return [];
   });
@@ -111,6 +118,15 @@ export default function Home() {
     setModalOpen(true);
   };
 
+  const addPlaylist = (newPlaylist) => {
+    setPlaylists((prevPlaylists) => {
+      const updatedPlaylists = [...prevPlaylists, newPlaylist];
+      localStorage.setItem('playlists', JSON.stringify(updatedPlaylists)); // Store in localStorage
+      return updatedPlaylists;
+    });
+  };
+  
+
   return (
     <>
       <main className="p-10 pb-40">
@@ -119,7 +135,7 @@ export default function Home() {
         <SearchBar onSearch={handleSearch} />
 
         <div className="flex space-x-4 mb-6">
-          {['tracks', 'albums', 'artists', 'favorites'].map((tab) => (
+          {['tracks', 'albums', 'artists', 'favorites','playlists'].map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -180,6 +196,14 @@ export default function Home() {
             {!favorites.length && <p className="text-gray-500">No favorites yet.</p>}
           </>
         )}
+       {activeTab === 'playlists' && (
+  <Playlist
+    playlists={playlists}
+    setPlaylists={setPlaylists}
+    onTrackClick={handleTrackClick} 
+  />
+)}
+
 
         {selectedTrack && (
           <MusicPlayer
