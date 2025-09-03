@@ -30,8 +30,7 @@ export default function Playlist({ onTrackClick = () => {} }) {
   };
 
   return (
-    <div className="p-6">
-      <h2 className="text-xl font-bold mb-4">Playlists</h2>
+    <div>
       {Object.keys(playlists).length === 0 ? (
         <p className="text-gray-500">No playlists available. Create one!</p>
       ) : (

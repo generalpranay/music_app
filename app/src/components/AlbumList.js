@@ -14,7 +14,7 @@ export default function AlbumList({ albums, onAlbumClick }) {
             alt={album.title}
             className="rounded mb-2"
           />
-          <h3 className="font-semibold text-sm">{album.title}</h3>
+          <h3 className="font-semibold text-black">{album.title}</h3>
           <p className="text-xs text-gray-600">{album.artist?.name || 'Unknown Artist'}</p>
         </div>
       ))}

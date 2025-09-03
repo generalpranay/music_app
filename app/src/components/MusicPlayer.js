@@ -15,7 +15,6 @@ export default function MusicPlayer({ track, favorites = [], setFavorites }) {
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(30);
   const [volume, setVolume] = useState(1);
-  const [showVolume, setShowVolume] = useState(false);
 
   const isFavorite = favorites.some((fav) => fav.id === track.id);
 
@@ -27,7 +26,6 @@ export default function MusicPlayer({ track, favorites = [], setFavorites }) {
     setFavorites(updated);
     localStorage.setItem('favorites', JSON.stringify(updated));
   };
-
 
   useEffect(() => {
     if (!track?.preview) return;
@@ -104,10 +102,6 @@ export default function MusicPlayer({ track, favorites = [], setFavorites }) {
     setVolume(newVolume);
   };
 
-  const toggleVolumeSlider = () => {
-    setShowVolume((prev) => !prev);
-  };
-
   if (!track?.preview) {
     return (
       <div className="fixed bottom-0 left-0 w-full bg-gray-900 text-white p-4 text-center">
@@ -117,70 +111,75 @@ export default function MusicPlayer({ track, favorites = [], setFavorites }) {
   }
 
   return (
-    <div className="fixed bottom-0 left-0 w-full bg-gray-900 text-white p-4 flex flex-col gap-2 items-center">
-      <div className="text-center">
-        <h4 className="font-semibold">{track.title}</h4>
-        <p className="text-sm text-gray-400">{track.artist.name}</p>
+    <div className="fixed bottom-0 left-0 w-full bg-gray-900 text-white px-6 py-3 flex items-center justify-between border-t border-gray-800">
+      {/* LEFT - Track Info */}
+      <div className="flex items-center gap-3 w-1/4">
+        <img
+          src={track.album.cover_small}
+          alt={track.title}
+          className="w-12 h-12 rounded-md object-cover"
+        />
+        <div>
+          <h4 className="font-semibold text-sm truncate">{track.title}</h4>
+          <p className="text-xs text-gray-400 truncate">{track.artist.name}</p>
+        </div>
+        <button
+          onClick={toggleFavorite}
+          className={`ml-2 text-xl ${
+            isFavorite ? 'text-green-500' : 'text-gray-400 hover:text-green-400'
+          }`}
+        >
+          {isFavorite ? '♥' : '♡'}
+        </button>
       </div>
-      <div className="flex items-center gap-4">
-        <button onClick={skipToStart} className="bg-white p-2 rounded">
-          <SkipBack className="w-5 h-5 text-black" />
-        </button>
-        <button onClick={togglePlay} className="bg-white p-2 rounded">
-          {isPlaying ? (
-            <Pause className="w-5 h-5 text-black" />
-          ) : (
-            <Play className="w-5 h-5 text-black" />
-          )}
-        </button>
-        <button onClick={skipToEnd} className="bg-white p-2 rounded">
-          <SkipForward className="w-5 h-5 text-black" />
-        </button>
+
+      {/* CENTER - Controls & Progress */}
+      <div className="flex flex-col items-center w-2/4">
+        <div className="flex items-center gap-6 mb-1">
+          <button onClick={skipToStart} className="hover:scale-110 transition">
+            <SkipBack className="w-5 h-5" />
+          </button>
+          <button
+            onClick={togglePlay}
+            className="bg-white text-black rounded-full p-2 hover:scale-110 transition"
+          >
+            {isPlaying ? (
+              <Pause className="w-6 h-6" />
+            ) : (
+              <Play className="w-6 h-6" />
+            )}
+          </button>
+          <button onClick={skipToEnd} className="hover:scale-110 transition">
+            <SkipForward className="w-5 h-5" />
+          </button>
+        </div>
+        {/* Progress bar */}
+        <div className="flex items-center gap-2 w-full">
+          <span className="text-[10px] w-8 text-right">{Math.floor(currentTime)}s</span>
+          <input
+            type="range"
+            min="0"
+            max={duration}
+            value={currentTime}
+            onChange={handleSliderChange}
+            className="w-full accent-green-500"
+          />
+          <span className="text-[10px] w-8">{Math.floor(duration)}s</span>
+        </div>
       </div>
-      <div className="w-full max-w-md flex items-center gap-2 relative">
-        <span className="text-sm">{Math.floor(currentTime)}s</span>
+
+      {/* RIGHT - Volume */}
+      <div className="flex items-center gap-3 w-1/4 justify-end">
+        <Volume2 className="w-5 h-5 text-gray-400" />
         <input
           type="range"
           min="0"
-          max={duration}
-          value={currentTime}
-          onChange={handleSliderChange}
-          className="w-full"
+          max="1"
+          step="0.01"
+          value={volume}
+          onChange={handleVolumeChange}
+          className="w-24 accent-green-500"
         />
-        <span className="text-sm">{Math.floor(duration)}s</span>
-        <div className="relative flex items-center gap-2">
-          <button onClick={toggleVolumeSlider} className="bg-white p-2 rounded ">
-            <Volume2 className="w-5 h-5 text-black" />
-          </button>
-          {showVolume && (
-            <div className="absolute bottom-10 left-1/2 transform -translate-x-1/2 bg-gray-800 rounded shadow h-28 w-8 flex items-center justify-center">
-              <div className="relative w-2 h-24 bg-gray-600 rounded-full overflow-hidden">
-                <div
-                  className="absolute bottom-0 left-0 w-full bg-blue-500 pointer-events-none"
-                  style={{ height: `${volume * 100}%` }}
-                ></div>
-                <input
-                  type="range"
-                  min="0"
-                  max="1"
-                  step="0.01"
-                  value={volume}
-                  onChange={handleVolumeChange}
-                  className="absolute left-0 top-0 w-full h-full opacity-0 cursor-pointer"
-                  style={{ writingMode: 'bt-lr', WebkitAppearance: 'slider-vertical' }}
-                />
-              </div>
-            </div>
-          )}
-        </div>
-        <button
-            onClick={toggleFavorite}
-            className={`text-3xl transition ${
-              isFavorite ? 'text-yellow-500' : 'text-white/50 hover:text-yellow-400'
-            }`}
-          >
-            {isFavorite ? '★' : '☆'}
-          </button>
       </div>
     </div>
   );

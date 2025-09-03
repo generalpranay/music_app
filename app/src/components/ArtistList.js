@@ -16,7 +16,7 @@ export default function ArtistList({ artists, onArtistClick }) {
             alt={artist.name}
             className="rounded-full mx-auto mb-2 w-24 h-24 object-cover"
           />
-          <h3 className="font-semibold text-sm">{artist.name}</h3>
+          <h3 className="font-semibold text-black">{artist.name}</h3>
         </div>
       ))}
     </div>

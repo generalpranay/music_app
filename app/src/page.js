@@ -54,8 +54,6 @@ export default function Home() {
   };
 
   const handleAlbumClick = async (album) => {
-    console.log('Clicked album:', album);
-
     const proxy = 'https://cors-anywhere.herokuapp.com/';
     const url = `https://api.deezer.com/album/${album.id}`;
 
@@ -121,102 +119,113 @@ export default function Home() {
   const addPlaylist = (newPlaylist) => {
     setPlaylists((prevPlaylists) => {
       const updatedPlaylists = [...prevPlaylists, newPlaylist];
-      localStorage.setItem('playlists', JSON.stringify(updatedPlaylists)); // Store in localStorage
+      localStorage.setItem('playlists', JSON.stringify(updatedPlaylists));
       return updatedPlaylists;
     });
   };
-  
 
   return (
-    <>
-      <main className="p-10 pb-40">
-        <h1 className="text-3xl font-bold mb-6">🎶 DucMix</h1>
-
+    <div className="h-screen flex flex-col bg-gray-50">
+      {/* Top bar */}
+      <header className="flex justify-between items-center px-6 py-4 bg-white shadow-md">
+        <h1 className="text-2xl font-bold text-blue-600">🎶 DucMix</h1>
+        <div className='pt-5'>
         <SearchBar onSearch={handleSearch} />
+        </div>
+      </header>
 
-        <div className="flex space-x-4 mb-6">
+      <div className="flex flex-1 overflow-hidden">
+        {/* Sidebar */}
+        <aside className="w-56 bg-gray-100 border-r p-4 space-y-2">
           {['tracks', 'albums', 'artists', 'favorites','playlists'].map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`px-4 py-2 rounded ${
+              className={`w-full text-left px-4 py-2 rounded-lg transition ${
                 activeTab === tab
                   ? 'bg-blue-500 text-white'
-                  : 'bg-gray-200 text-gray-800 hover:bg-gray-300'
+                  : 'text-gray-700 hover:bg-gray-200'
               }`}
             >
               {tab.charAt(0).toUpperCase() + tab.slice(1)}
             </button>
           ))}
-        </div>
+        </aside>
 
-        {error && <div className="text-red-500 mb-4">{error}</div>}
-        {loading && <div className="mb-4">Loading...</div>}
+        {/* Main Content */}
+        <main className="flex-1 p-6 overflow-y-auto">
+          {error && <div className="text-red-500 mb-4">{error}</div>}
+          {loading && <div className="mb-4">Loading...</div>}
 
-        {!loading && activeTab === 'tracks' && (
-          <>
-            <MusicList
-              tracks={tracks}
-              onTrackClick={handleTrackClick}
-              favorites={favorites}
-              setFavorites={setFavorites}
+          {!loading && activeTab === 'tracks' && (
+            <>
+              <MusicList
+                tracks={tracks}
+                onTrackClick={handleTrackClick}
+                favorites={favorites}
+                setFavorites={setFavorites}
+              />
+              {!tracks.length && !error && (
+                <p className="text-gray-500">No tracks found.</p>
+              )}
+            </>
+          )}
+
+          {!loading && activeTab === 'albums' && (
+            <>
+              <AlbumList albums={albums} onAlbumClick={handleAlbumClick} />
+              {!albums.length && !error && (
+                <p className="text-gray-500">No albums found.</p>
+              )}
+            </>
+          )}
+
+          {!loading && activeTab === 'artists' && (
+            <>
+              <ArtistList artists={artists} onArtistClick={handleArtistClick} />
+              {!artists.length && !error && (
+                <p className="text-gray-500">No artists found.</p>
+              )}
+            </>
+          )}
+
+          {!loading && activeTab === 'favorites' && (
+            <>
+              <MusicList
+                tracks={favorites}
+                onTrackClick={handleTrackClick}
+                favorites={favorites}
+                setFavorites={setFavorites}
+              />
+              {!favorites.length && <p className="text-gray-500">No favorites yet.</p>}
+            </>
+          )}
+
+          {activeTab === 'playlists' && (
+            <Playlist
+              playlists={playlists}
+              setPlaylists={setPlaylists}
+              onTrackClick={handleTrackClick} 
             />
-            {!tracks.length && !error && (
-              <p className="text-gray-500">No tracks found.</p>
-            )}
-          </>
-        )}
+          )}
+        </main>
+      </div>
 
-        {!loading && activeTab === 'albums' && (
-          <>
-            <AlbumList albums={albums} onAlbumClick={handleAlbumClick} />
-            {!albums.length && !error && (
-              <p className="text-gray-500">No albums found.</p>
-            )}
-          </>
-        )}
-
-        {!loading && activeTab === 'artists' && (
-          <>
-            <ArtistList artists={artists} onArtistClick={handleArtistClick} />
-            {!artists.length && !error && (
-              <p className="text-gray-500">No artists found.</p>
-            )}
-          </>
-        )}
-
-        {!loading && activeTab === 'favorites' && (
-          <>
-            <MusicList
-              tracks={favorites}
-              onTrackClick={handleTrackClick}
-              favorites={favorites}
-              setFavorites={setFavorites}
-            />
-            {!favorites.length && <p className="text-gray-500">No favorites yet.</p>}
-          </>
-        )}
-       {activeTab === 'playlists' && (
-  <Playlist
-    playlists={playlists}
-    setPlaylists={setPlaylists}
-    onTrackClick={handleTrackClick} 
-  />
-)}
-
-
-        {selectedTrack && (
+      {/* Bottom Player */}
+      {selectedTrack && (
+        <footer className="sticky bottom-0 w-full bg-white shadow-inner p-4">
           <MusicPlayer
             track={selectedTrack}
             favorites={favorites}
             setFavorites={setFavorites}
           />
-        )}
-      </main>
+        </footer>
+      )}
 
+      {/* Modal */}
       <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)}>
         {modalContent}
       </Modal>
-    </>
+    </div>
   );
 }
