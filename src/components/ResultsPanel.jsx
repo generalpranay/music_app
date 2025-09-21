@@ -5,6 +5,8 @@ import MusicList from '@/components/MusicList';
 import AlbumList from '@/components/AlbumList';
 import ArtistList from '@/components/ArtistList';
 import Playlist from '@/components/Playlist';
+import LoadingSpinner from '@/components/LoadingSpinner';
+import { TrackSkeleton, CardSkeleton } from '@/components/Skeletons';
 
 export default function ResultsPanel({
   activeTab,
@@ -19,14 +21,23 @@ export default function ResultsPanel({
   currentQuery,
   chartParam,
 }) {
-  // Prevent SSR/CSR mismatches (e.g., favorites from localStorage)
   const [mounted, setMounted] = useState(false);
   useEffect(() => { setMounted(true); }, []);
 
   return (
     <main className="flex-1 p-6 overflow-y-auto pb-[140px] scroll-pb-[140px]">
       {error && <div className="text-red-500 mb-4">{error}</div>}
-      {loading && <div className="mb-4">Loading...</div>}
+
+      {/* Loading states (tab-aware) */}
+      {loading && (
+        <div className="mb-4">
+          {activeTab === 'tracks' && <TrackSkeleton count={8} />}
+          {activeTab === 'artists' && <CardSkeleton count={8} />}
+          {activeTab === 'albums' && <CardSkeleton count={8} />}
+          {activeTab === 'favorites' && <TrackSkeleton count={6} />}
+          {activeTab === 'playlists' && <LoadingSpinner label="Loading playlists" />}
+        </div>
+      )}
 
       {/* TRACKS */}
       {!loading && activeTab === 'tracks' && (
@@ -71,7 +82,7 @@ export default function ResultsPanel({
         </>
       )}
 
-      {/* FAVORITES (gate until mounted) */}
+      {/* FAVORITES */}
       {!loading && activeTab === 'favorites' && (
         mounted ? (
           <>
@@ -84,14 +95,12 @@ export default function ResultsPanel({
             {!favorites?.length && <p className="text-gray-500">No favorites yet.</p>}
           </>
         ) : (
-          <div className="rounded-xl border border-slate-200 bg-white p-6 text-slate-600">
-            Loading favorites…
-          </div>
+          <TrackSkeleton count={6} />
         )
       )}
 
       {/* PLAYLISTS */}
-      {activeTab === 'playlists' && <Playlist onTrackClick={onTrackClick} />}
+      {activeTab === 'playlists' && !loading && <Playlist onTrackClick={onTrackClick} />}
     </main>
   );
 }
