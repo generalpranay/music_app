@@ -1,14 +1,16 @@
 .trackItem {
   position: relative;
   cursor: pointer;
-  overflow: hidden;
+  overflow: hidden;            
+  isolation: isolate;          
   transition: background 0.3s ease;
 }
 
 .trackItem:hover {
-  background-color: #f0f4f8; /* optional subtle hover background */
+  background-color: #f0f4f8;   
 }
 
+/* animated blue line, but kept UNDER content */
 .trackItem::after {
   content: '';
   position: absolute;
@@ -17,10 +19,16 @@
   width: 0;
   height: 3px;
   transition: width 0.3s ease;
-  z-index: 10;
+  z-index: 0;                  
   background-color: #3498db;
 }
 
 .trackItem:hover::after {
   width: 100%;
+}
+
+/* ensure real content sits above the line */
+.trackItem > * {
+  position: relative;
+  z-index: 1;
 }
