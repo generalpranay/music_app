@@ -1,27 +1,22 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import AppHeader from '@/components/AppHeader';
 import Sidebar from '@/components/Sidebar';
-import MusicPlayer from '@/components/MusicPlayer';
 import MusicList from '@/components/MusicList';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
-import { Play, Pause, ListMusic, Users } from 'lucide-react';
+import { Play, ListMusic, Users } from 'lucide-react';
+import { usePlayer } from '@/contexts/PlayerContext';
 
 export default function ArtistClient({ artist, top, back = '/?tab=artists' }) {
+  const { play } = usePlayer();                      
+  const [favorites, setFavorites] = useLocalStorage('favorites', []);
+
   // Top tracks already have album covers and preview links
   const tracks = useMemo(() => top?.data ?? [], [top]);
   const anyPreview = tracks.some((t) => !!t.preview);
-
-  const [favorites, setFavorites] = useLocalStorage('favorites', []);
-  const [selectedTrack, setSelectedTrack] = useState(null);
-
-  const startPlay = (t) => { if (t?.preview) setSelectedTrack(t); };
-  const stopPlay  = () => setSelectedTrack(null);
-
-  // followers might be in artist.nb_fan
   const fans = artist?.nb_fan ? Intl.NumberFormat().format(artist.nb_fan) : null;
 
   return (
@@ -57,13 +52,13 @@ export default function ArtistClient({ artist, top, back = '/?tab=artists' }) {
                     type="button"
                     onClick={() => {
                       const firstPlayable = tracks.find((t) => !!t.preview);
-                      if (firstPlayable) setSelectedTrack(firstPlayable);
+                      if (firstPlayable) play(firstPlayable, tracks);    
                     }}
                     className="inline-flex items-center gap-2 rounded-full bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:opacity-50"
                     disabled={!anyPreview}
                     title={anyPreview ? 'Play first preview' : 'No previews available'}
                   >
-                    {anyPreview ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4 opacity-30" />}
+                    <Play className="h-4 w-4" />
                     Play
                   </button>
 
@@ -83,27 +78,13 @@ export default function ArtistClient({ artist, top, back = '/?tab=artists' }) {
           <div className="mx-6 my-6">
             <MusicList
               tracks={tracks}
-              onTrackClick={(t) => {
-                if (selectedTrack && String(selectedTrack.id) === String(t.id)) {
-                  setSelectedTrack(null);
-                } else {
-                  startPlay(t);
-                }
-              }}
-              onPause={() => setSelectedTrack(null)}
-              currentTrack={selectedTrack}
+              onTrackClick={(t) => play(t, tracks)}         
               favorites={favorites}
               setFavorites={setFavorites}
             />
           </div>
         </main>
       </div>
-
-      {selectedTrack && (
-        <footer className="sticky bottom-0 z-40 w-full bg-white shadow-inner p-4">
-          <MusicPlayer track={selectedTrack} favorites={favorites} setFavorites={setFavorites} />
-        </footer>
-      )}
     </div>
   );
 }

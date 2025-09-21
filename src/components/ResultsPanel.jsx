@@ -18,16 +18,13 @@ export default function ResultsPanel({
   onTrackClick,
   currentQuery,
   chartParam,
-  // NEW: passed from parent
-  selectedTrack,
-  onPause,
 }) {
   // Prevent SSR/CSR mismatches (e.g., favorites from localStorage)
   const [mounted, setMounted] = useState(false);
   useEffect(() => { setMounted(true); }, []);
 
   return (
-    <main className="flex-1 p-6 overflow-y-auto pb-24 scroll-pb-24">
+    <main className="flex-1 p-6 overflow-y-auto pb-[140px] scroll-pb-[140px]">
       {error && <div className="text-red-500 mb-4">{error}</div>}
       {loading && <div className="mb-4">Loading...</div>}
 
@@ -37,8 +34,6 @@ export default function ResultsPanel({
           <MusicList
             tracks={tracks}
             onTrackClick={onTrackClick}
-            onPause={onPause}
-            currentTrack={selectedTrack}
             favorites={favorites}
             setFavorites={setFavorites}
           />
@@ -83,8 +78,6 @@ export default function ResultsPanel({
             <MusicList
               tracks={favorites}
               onTrackClick={onTrackClick}
-              onPause={onPause}
-              currentTrack={selectedTrack}
               favorites={favorites}
               setFavorites={setFavorites}
             />

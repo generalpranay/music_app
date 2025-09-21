@@ -1,14 +1,14 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import AppHeader from '@/components/AppHeader';
 import Sidebar from '@/components/Sidebar';
-import MusicPlayer from '@/components/MusicPlayer';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
-import { Play, Pause, ListMusic, Calendar } from 'lucide-react';
+import { Play, ListMusic, Calendar } from 'lucide-react';
 import MusicList from '@/components/MusicList';
+import { usePlayer } from '@/contexts/PlayerContext';
 
 function ms(t = 0) {
   const m = Math.floor(t / 60);
@@ -17,6 +17,9 @@ function ms(t = 0) {
 }
 
 export default function AlbumClient({ album, back = '/?tab=albums' }) {
+  const { play } = usePlayer();                          
+  const [favorites, setFavorites] = useLocalStorage('favorites', []);
+
   // Normalize album tracks to your MusicList shape (attach album covers)
   const tracks = useMemo(() => {
     const baseCovers = {
@@ -35,13 +38,6 @@ export default function AlbumClient({ album, back = '/?tab=albums' }) {
   }, [album]);
 
   const anyPreview = tracks.some((t) => !!t.preview);
-
-  // App state already used elsewhere
-  const [favorites, setFavorites] = useLocalStorage('favorites', []);
-  const [selectedTrack, setSelectedTrack] = useState(null);
-
-  const startPlay = (t) => { if (t?.preview) setSelectedTrack(t); };
-  const stopPlay  = () => setSelectedTrack(null);
 
   return (
     <div className="h-screen flex flex-col bg-gray-50">
@@ -66,8 +62,8 @@ export default function AlbumClient({ album, back = '/?tab=albums' }) {
                 <p className="text-sm uppercase tracking-wide text-slate-500">Album</p>
                 <h1 className="truncate text-3xl font-extrabold text-slate-900">{album?.title}</h1>
                 <p className="mt-1 text-sm text-slate-600">
-                  {album?.artist?.name ?? 'Unknown Artist'} · {tracks.length}{' '}
-                  {tracks.length === 1 ? 'track' : 'tracks'}
+                  {album?.artist?.name ?? 'Unknown Artist'} · {(album?.tracks?.data ?? []).length}{' '}
+                  {(album?.tracks?.data ?? []).length === 1 ? 'track' : 'tracks'}
                 </p>
                 {album?.release_date && (
                   <p className="mt-1 text-xs text-slate-500 inline-flex items-center gap-1">
@@ -80,13 +76,13 @@ export default function AlbumClient({ album, back = '/?tab=albums' }) {
                     type="button"
                     onClick={() => {
                       const firstPlayable = tracks.find((t) => !!t.preview);
-                      if (firstPlayable) setSelectedTrack(firstPlayable);
+                      if (firstPlayable) play(firstPlayable, tracks);          
                     }}
                     className="inline-flex items-center gap-2 rounded-full bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:opacity-50"
                     disabled={!anyPreview}
                     title={anyPreview ? 'Play first preview' : 'No previews available'}
                   >
-                    {anyPreview ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4 opacity-30" />}
+                    <Play className="h-4 w-4" />
                     Play
                   </button>
 
@@ -102,33 +98,17 @@ export default function AlbumClient({ album, back = '/?tab=albums' }) {
             </div>
           </div>
 
-          {/* Tracks (playable, with favorite & add-to-playlist from your MusicList) */}
+          {/* Tracks (playable + fav/playlist via MusicList) */}
           <div className="mx-6 my-6">
             <MusicList
               tracks={tracks}
-              onTrackClick={(t) => {
-                // toggle if same track
-                if (selectedTrack && String(selectedTrack.id) === String(t.id)) {
-                  setSelectedTrack(null);
-                } else {
-                  startPlay(t);
-                }
-              }}
-              onPause={() => setSelectedTrack(null)}
-              currentTrack={selectedTrack}
+              onTrackClick={(t) => play(t, tracks)}            
               favorites={favorites}
               setFavorites={setFavorites}
             />
           </div>
         </main>
       </div>
-
-      {/* Footer player */}
-      {selectedTrack && (
-        <footer className="sticky bottom-0 z-40 w-full bg-white shadow-inner p-4">
-          <MusicPlayer track={selectedTrack} favorites={favorites} setFavorites={setFavorites} />
-        </footer>
-      )}
     </div>
   );
 }

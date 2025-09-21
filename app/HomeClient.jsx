@@ -6,15 +6,16 @@ import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import AppHeader from '@/components/AppHeader';
 import Sidebar from '@/components/Sidebar';
 import ResultsPanel from '@/components/ResultsPanel';
-import MusicPlayer from '@/components/MusicPlayer';
 import HomeLanding from '@/components/HomeLanding';
 import { fetchMusicData, fetchTopTracks } from '@/lib/musicAPI';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
+import { usePlayer } from '@/contexts/PlayerContext';
 
 export default function HomeClient({ initialData, initialQuery, initialTab, initialChart }) {
   const router = useRouter();
   const sp = useSearchParams();
   const pathname = usePathname();
+  const { play } = usePlayer();                
 
   const chartParam = (sp?.get('chart') || initialChart || '').trim();
   const isRoot = pathname === '/' && !sp.get('tab') && !sp.get('q') && !sp.get('chart');
@@ -26,7 +27,6 @@ export default function HomeClient({ initialData, initialQuery, initialTab, init
   const [currentQuery, setCurrentQuery] = useState(initialQuery || '');
   const [activeTab, setActiveTab] = useState(initialTab || 'tracks');
 
-  const [selectedTrack, setSelectedTrack] = useState(null);
   const [favorites, setFavorites] = useLocalStorage('favorites', []);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -93,7 +93,6 @@ export default function HomeClient({ initialData, initialQuery, initialTab, init
     const q2 = query.trim();
     setCurrentQuery(q2);
     if (q2) { setLoading(true); setError(null); }
-    // empty search returns to true landing (/)
     router.push(q2 ? `/?q=${encodeURIComponent(q2)}&tab=${activeTab}` : '/', { scroll: false });
   };
 
@@ -108,7 +107,8 @@ export default function HomeClient({ initialData, initialQuery, initialTab, init
     router.push(href, { scroll: false });
   };
 
-  const handleTrackClick = (track) => setSelectedTrack(track);
+  // row click → start global player with current list as queue
+  const handleTrackClick = (t) => play(t, tracks);
 
   // Show landing ONLY on the true root route
   if (isRoot) {
@@ -125,12 +125,12 @@ export default function HomeClient({ initialData, initialQuery, initialTab, init
     <div className="h-screen flex flex-col bg-gray-50">
       <AppHeader onSearch={handleSearch} title="🎶 DucMix" initialQuery={currentQuery} />
       <div className="flex flex-1 overflow-hidden">
-        <Sidebar 
-          activeTab={activeTab} 
+        <Sidebar
+          activeTab={activeTab}
           setActiveTab={handleTabChange}
           currentQuery={currentQuery}
           chartParam={chartParam}
-           />
+        />
         <ResultsPanel
           activeTab={activeTab}
           loading={loading}
@@ -144,15 +144,8 @@ export default function HomeClient({ initialData, initialQuery, initialTab, init
           fetchedOnce={fetchedOnce}
           currentQuery={currentQuery}
           chartParam={chartParam}
-          selectedTrack={selectedTrack}
-          onPause={() => setSelectedTrack(null)}
         />
       </div>
-      {selectedTrack && (
-        <footer className="sticky bottom-0 z-40 w-full bg-white shadow-inner p-4">
-          <MusicPlayer track={selectedTrack} favorites={favorites} setFavorites={setFavorites} />
-        </footer>
-      )}
     </div>
   );
 }

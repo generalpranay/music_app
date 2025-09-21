@@ -1,185 +1,313 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import Image from 'next/image';
 import {
-  Play,
-  Pause,
-  Volume2,
-  SkipForward,
-  SkipBack
+  Play, Pause, SkipBack, SkipForward,
+  Volume2, VolumeX, Shuffle,
+  Repeat, Repeat1, Heart
 } from 'lucide-react';
 
-export default function MusicPlayer({ track, favorites = [], setFavorites }) {
+function fmt(t = 0) {
+  const m = Math.floor(t / 60);
+  const s = Math.floor(t % 60);
+  return `${m}:${s.toString().padStart(2, '0')}`;
+}
+
+/**
+ * Props:
+ * - track:     current track object (expects .preview, .title, .artist?.name, .album?.cover_medium)
+ * - queue:     optional array of tracks (for prev/next/shuffle)
+ * - onChangeTrack(track): callback when player picks next/prev/shuffle
+ * - favorites, setFavorites: same as you already use elsewhere
+ */
+export default function MusicPlayer({
+  track,
+  queue = [],
+  onChangeTrack,
+  favorites = [],
+  setFavorites = () => {},
+}) {
   const audioRef = useRef(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(30);
-  const [volume, setVolume] = useState(1);
+  const [playing, setPlaying] = useState(false);
+  const [dur, setDur] = useState(30);             // Deezer preview is ~30s
+  const [pos, setPos] = useState(0);
+  const [dragging, setDragging] = useState(false);
 
-  const isFavorite = favorites.some((fav) => fav.id === track.id);
+  const [vol, setVol] = useState(0.9);
+  const [muted, setMuted] = useState(false);
 
-  const toggleFavorite = () => {
-    const updated = isFavorite
-      ? favorites.filter((fav) => fav.id !== track.id)
-      : [...favorites, track];
+  // repeat: 'off' | 'all' | 'one'
+  const [repeat, setRepeat] = useState('off');
+  const [shuffle, setShuffle] = useState(false);
 
-    setFavorites(updated);
+  const mountedKey = 'dmx_volume_v1';
+
+  const currentIndex = useMemo(() => {
+    if (!queue?.length || !track) return -1;
+    return queue.findIndex((t) => String(t.id) === String(track.id));
+  }, [queue, track]);
+
+  const hasPrev = currentIndex > 0;
+  const hasNext = currentIndex !== -1 && currentIndex < queue.length - 1;
+
+  const isFav = (t) => favorites?.some((f) => String(f.id) === String(t.id));
+  const toggleFav = (t) => {
+    if (!t) return;
+    setFavorites((prev) =>
+      isFav(t) ? prev.filter((f) => String(f.id) !== String(t.id)) : [{ ...t }, ...prev]
+    );
   };
 
+  // Load initial volume once
   useEffect(() => {
+    try {
+      const saved = localStorage.getItem(mountedKey);
+      if (saved != null) setVol(Number(saved));
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(mountedKey, String(vol));
+    } catch {}
+    if (audioRef.current) {
+      audioRef.current.volume = muted ? 0 : vol;
+    }
+  }, [vol, muted]);
+
+  // When track changes, load and auto play
+  useEffect(() => {
+    const a = audioRef.current;
+    if (!a) return;
+    setPos(0);
+    setPlaying(false);
     if (!track?.preview) return;
 
-    const audio = new Audio(track.preview);
-    audio.volume = volume;
-    audioRef.current = audio;
+    a.src = track.preview;
+    a.load();
+    // a.play() will be triggered on metadata (some browsers need a user gesture)
+  }, [track?.preview]);
 
-    const playAudio = async () => {
-      try {
-        await audio.play();
-        setIsPlaying(true);
-      } catch (err) {
-        console.warn('Playback failed:', err.message);
-      }
-    };
+  const onLoaded = () => {
+    const a = audioRef.current;
+    if (!a) return;
+    setDur(a.duration || 30);
+    // try to play
+    a.play().then(() => setPlaying(true)).catch(() => setPlaying(false));
+  };
 
-    playAudio();
-
-    const updateTime = () => setCurrentTime(audio.currentTime);
-    const onLoadedMetadata = () => setDuration(audio.duration || 30);
-
-    audio.addEventListener('timeupdate', updateTime);
-    audio.addEventListener('loadedmetadata', onLoadedMetadata);
-
-    return () => {
-      audio.pause();
-      audio.removeEventListener('timeupdate', updateTime);
-      audio.removeEventListener('loadedmetadata', onLoadedMetadata);
-    };
-  }, [track]);
-
-  useEffect(() => {
-    if (audioRef.current) {
-      audioRef.current.volume = volume;
-    }
-  }, [volume]);
+  const onTimeUpdate = () => {
+    if (dragging) return;
+    const a = audioRef.current;
+    if (!a) return;
+    setPos(a.currentTime);
+  };
 
   const togglePlay = () => {
-    if (!audioRef.current) return;
-
-    if (isPlaying) {
-      audioRef.current.pause();
-      setIsPlaying(false);
+    const a = audioRef.current;
+    if (!a) return;
+    if (playing) {
+      a.pause();
+      setPlaying(false);
     } else {
-      audioRef.current.play().then(() => setIsPlaying(true));
+      a.play().then(() => setPlaying(true)).catch(() => setPlaying(false));
     }
   };
 
-  const handleSliderChange = (e) => {
-    const newTime = parseFloat(e.target.value);
-    if (audioRef.current) {
-      audioRef.current.currentTime = newTime;
-      setCurrentTime(newTime);
+  const seek = (newPos) => {
+    const a = audioRef.current;
+    if (!a) return;
+    a.currentTime = Math.min(Math.max(0, newPos), dur);
+    setPos(a.currentTime);
+  };
+
+  const cycleRepeat = () => {
+    setRepeat((r) => (r === 'off' ? 'all' : r === 'all' ? 'one' : 'off'));
+  };
+
+  const handleEnded = () => {
+    if (repeat === 'one') {
+      seek(0);
+      audioRef.current?.play();
+      setPlaying(true);
+      return;
+    }
+    // With a queue
+    if (queue?.length && onChangeTrack) {
+      if (shuffle) {
+        // Pick a random different index
+        const pool = queue.filter((t) => String(t.id) !== String(track.id));
+        const next = pool[Math.floor(Math.random() * Math.max(pool.length, 1))] || track;
+        if (next && next !== track) onChangeTrack(next);
+        else if (repeat !== 'off') onChangeTrack(queue[0]);
+        return;
+      }
+      if (hasNext) {
+        onChangeTrack(queue[currentIndex + 1]);
+      } else if (repeat !== 'off') {
+        onChangeTrack(queue[0]);
+      }
+    } else {
+      // No queue → just stop
+      setPlaying(false);
+      seek(0);
     }
   };
 
-  const skipToStart = () => {
-    if (audioRef.current) {
-      audioRef.current.currentTime = 0;
-      setCurrentTime(0);
+  const goPrev = () => {
+    if (!queue?.length || !onChangeTrack) return;
+    if (shuffle) {
+      const pool = queue.filter((t) => String(t.id) !== String(track.id));
+      const prev = pool[Math.floor(Math.random() * Math.max(pool.length, 1))];
+      if (prev) onChangeTrack(prev);
+      return;
     }
+    if (hasPrev) onChangeTrack(queue[currentIndex - 1]);
   };
 
-  const skipToEnd = () => {
-    if (audioRef.current) {
-      audioRef.current.currentTime = duration;
-      setCurrentTime(duration);
+  const goNext = () => {
+    if (!queue?.length || !onChangeTrack) return;
+    if (shuffle) {
+      const pool = queue.filter((t) => String(t.id) !== String(track.id));
+      const nxt = pool[Math.floor(Math.random() * Math.max(pool.length, 1))];
+      if (nxt) onChangeTrack(nxt);
+      return;
     }
+    if (hasNext) onChangeTrack(queue[currentIndex + 1]);
+    else if (repeat !== 'off') onChangeTrack(queue[0]);
   };
 
-  const handleVolumeChange = (e) => {
-    const newVolume = parseFloat(e.target.value);
-    setVolume(newVolume);
-  };
-
-  if (!track?.preview) {
-    return (
-      <div className="fixed bottom-0 left-0 w-full bg-gray-900 text-white p-4 text-center">
-        <p>No preview available for this track.</p>
-      </div>
-    );
-  }
+  if (!track) return null;
 
   return (
-    <div className="fixed bottom-0 left-0 w-full bg-gray-900 text-white px-6 py-3 flex items-center justify-between border-t border-gray-800">
-      {/* LEFT - Track Info */}
-      <div className="flex items-center gap-3 w-1/4">
-        <img
-          src={track.album.cover_small}
-          alt={track.title}
-          className="w-12 h-12 rounded-md object-cover"
-        />
-        <div>
-          <h4 className="font-semibold text-sm truncate">{track.title}</h4>
-          <p className="text-xs text-gray-400 truncate">{track.artist.name}</p>
+    <div className="mx-auto max-w-6xl px-4">
+      <div className="flex items-center gap-4 rounded-2xl border border-slate-200 bg-white/95 px-4 py-3 shadow-lg backdrop-blur">
+        {/* Artwork */}
+        <div className="relative h-14 w-14 overflow-hidden rounded-xl ring-1 ring-black/10">
+          <Image
+            src={track.album?.cover_medium || '/placeholder.svg'}
+            alt={track.title || 'Artwork'}
+            fill
+            unoptimized
+            className="object-cover"
+          />
         </div>
-        <button
-          onClick={toggleFavorite}
-          className={`ml-2 text-xl ${
-            isFavorite ? 'text-green-500' : 'text-gray-400 hover:text-green-400'
-          }`}
-        >
-          {isFavorite ? '♥' : '♡'}
-        </button>
-      </div>
 
-      {/* CENTER - Controls & Progress */}
-      <div className="flex flex-col items-center w-2/4">
-        <div className="flex items-center gap-6 mb-1">
-          <button onClick={skipToStart} className="hover:scale-110 transition">
-            <SkipBack className="w-5 h-5" />
-          </button>
-          <button
-            onClick={togglePlay}
-            className="bg-white text-black rounded-full p-2 hover:scale-110 transition"
-          >
-            {isPlaying ? (
-              <Pause className="w-6 h-6" />
-            ) : (
-              <Play className="w-6 h-6" />
-            )}
-          </button>
-          <button onClick={skipToEnd} className="hover:scale-110 transition">
-            <SkipForward className="w-5 h-5" />
-          </button>
+        {/* Title / Artist */}
+        <div className="min-w-0">
+          <div className="truncate font-semibold text-slate-900">{track.title}</div>
+          <div className="truncate text-sm text-slate-600">{track.artist?.name}</div>
         </div>
-        {/* Progress bar */}
-        <div className="flex items-center gap-2 w-full">
-          <span className="text-[10px] w-8 text-right">{Math.floor(currentTime)}s</span>
+
+        {/* Controls */}
+        <div className="flex items-center gap-2 ml-auto">
+          {/* Shuffle */}
+          <button
+            className={`rounded-full p-2 ${shuffle ? 'text-blue-600 bg-blue-50' : 'text-slate-700 hover:bg-slate-100'}`}
+            title="Shuffle"
+            onClick={() => setShuffle((s) => !s)}
+          >
+            <Shuffle className="h-5 w-5" />
+          </button>
+
+          {/* Prev */}
+          <button
+            className="rounded-full p-2 text-slate-700 hover:bg-slate-100 disabled:opacity-40"
+            onClick={goPrev}
+            disabled={!queue?.length || (!hasPrev && !shuffle)}
+            title="Previous"
+          >
+            <SkipBack className="h-5 w-5" />
+          </button>
+
+          {/* Play / Pause */}
+          <button
+            className="rounded-full bg-blue-600 p-2 text-white hover:bg-blue-700"
+            onClick={togglePlay}
+            title={playing ? 'Pause' : 'Play'}
+          >
+            {playing ? <Pause className="h-6 w-6" /> : <Play className="h-6 w-6" />}
+          </button>
+
+          {/* Next */}
+          <button
+            className="rounded-full p-2 text-slate-700 hover:bg-slate-100 disabled:opacity-40"
+            onClick={goNext}
+            disabled={!queue?.length || (!hasNext && repeat === 'off' && !shuffle)}
+            title="Next"
+          >
+            <SkipForward className="h-5 w-5" />
+          </button>
+
+          {/* Repeat */}
+          <button
+            className={`rounded-full p-2 ${repeat !== 'off' ? 'text-blue-600 bg-blue-50' : 'text-slate-700 hover:bg-slate-100'}`}
+            onClick={cycleRepeat}
+            title={`Repeat: ${repeat}`}
+          >
+            {repeat === 'one' ? <Repeat1 className="h-5 w-5" /> : <Repeat className="h-5 w-5" />}
+          </button>
+
+          {/* Favorite */}
+          <button
+            className={`rounded-full p-2 ${isFav(track) ? 'text-pink-600 bg-pink-50' : 'text-slate-700 hover:bg-slate-100'}`}
+            onClick={() => toggleFav(track)}
+            title={isFav(track) ? 'Remove favorite' : 'Add to favorites'}
+          >
+            <Heart className={`h-5 w-5 ${isFav(track) ? 'fill-pink-500 stroke-pink-600' : ''}`} />
+          </button>
+
+          {/* Volume */}
+          <button
+            className="rounded-full p-2 text-slate-700 hover:bg-slate-100"
+            onClick={() => setMuted((m) => !m)}
+            title={muted ? 'Unmute' : 'Mute'}
+          >
+            {muted || vol === 0 ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
+          </button>
+
           <input
             type="range"
-            min="0"
-            max={duration}
-            value={currentTime}
-            onChange={handleSliderChange}
-            className="w-full accent-green-500"
+            min={0}
+            max={1}
+            step={0.01}
+            value={muted ? 0 : vol}
+            onChange={(e) => setVol(Number(e.target.value))}
+            className="h-2 w-28 cursor-pointer accent-blue-500"
+            aria-label="Volume"
           />
-          <span className="text-[10px] w-8">{Math.floor(duration)}s</span>
         </div>
       </div>
 
-      {/* RIGHT - Volume */}
-      <div className="flex items-center gap-3 w-1/4 justify-end">
-        <Volume2 className="w-5 h-5 text-gray-400" />
+      {/* Seek bar */}
+      <div className="mt-2 flex items-center gap-3 text-xs text-slate-600">
+        <span className="tabular-nums">{fmt(pos)}</span>
         <input
           type="range"
-          min="0"
-          max="1"
-          step="0.01"
-          value={volume}
-          onChange={handleVolumeChange}
-          className="w-24 accent-green-500"
+          min={0}
+          max={dur || 30}
+          step={0.1}
+          value={pos}
+          onMouseDown={() => setDragging(true)}
+          onTouchStart={() => setDragging(true)}
+          onChange={(e) => setPos(Number(e.target.value))}
+          onMouseUp={(e) => { setDragging(false); seek(Number(e.currentTarget.value)); }}
+          onTouchEnd={(e) => { setDragging(false); seek(Number(e.currentTarget.value)); }}
+          className="h-2 w-full cursor-pointer accent-blue-500"
+          aria-label="Seek"
         />
+        <span className="tabular-nums">{fmt(dur)}</span>
       </div>
+
+      {/* Hidden audio element */}
+      <audio
+        ref={audioRef}
+        onLoadedMetadata={onLoaded}
+        onTimeUpdate={onTimeUpdate}
+        onEnded={handleEnded}
+        preload="metadata"
+      />
     </div>
   );
 }
