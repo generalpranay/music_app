@@ -1,5 +1,5 @@
 'use client';
-
+/* keeping modal component maybe will use it for something else later */
 export default function Modal({ isOpen, onClose, children }) {
   if (!isOpen) return null;
 
