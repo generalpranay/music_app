@@ -24,7 +24,6 @@ export default function MusicPlayer({ track, favorites = [], setFavorites }) {
       : [...favorites, track];
 
     setFavorites(updated);
-    localStorage.setItem('favorites', JSON.stringify(updated));
   };
 
   useEffect(() => {
