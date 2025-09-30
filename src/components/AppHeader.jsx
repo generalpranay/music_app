@@ -78,19 +78,7 @@ export default function AppHeaderBlue({
           </div>
 
           {/* Right: profile placeholder */}
-          <div className="flex items-center justify-end">
-            <button
-              type="button"
-              className="
-                inline-flex h-10 w-10 items-center justify-center overflow-hidden
-                rounded-full bg-white/85 ring-1 ring-white/70 hover:ring-white transition
-                backdrop-blur
-              "
-              aria-label="Profile"
-            >
-              <User className="h-5 w-5 text-slate-700" />
-            </button>
-          </div>
+          
         </div>
       </div>
 

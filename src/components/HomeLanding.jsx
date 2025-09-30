@@ -5,6 +5,7 @@ import ScrollRow from '@/components/ScrollRow';
 import PlaylistCard from '@/components/PlaylistCard';
 import AvatarBelt from '@/components/AvatarBelt';
 import Sidebar from '@/components/Sidebar';
+import MusicPlayer from '@/components/MusicPlayer';
 import { Music2, UserRound, Flame, Sparkles, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 
@@ -46,7 +47,7 @@ export default function HomeLanding() {
       responses?.forEach(r => { if (r?.ok && r.data?.id) byId.set(String(r.data.id), r.data); });
       const playlists = FEATURED_PLAYLISTS.map(p => {
         const d = p.id ? byId.get(String(p.id)) : null;
-        const img = d?.picture_xl || d?.picture_big || d?.picture_medium || '/placeholder.svg';
+        const img = d?.picture_xl || d?.picture_big || d?.picture_medium || 'https://source.unsplash.com/600x400/?music';
         const subtitle =
           p.sub ??
           (d?.nb_tracks ? `${d.nb_tracks} ${d.nb_tracks === 1 ? 'track' : 'tracks'}` :
@@ -62,7 +63,7 @@ export default function HomeLanding() {
         const items = Array.isArray(j.data) ? j.data : [];
         const artists = items.map(a => ({
           name: a.name,
-          image: a.picture_xl || a.picture_big || a.picture_medium || '/placeholder.svg',
+          image: a.picture_xl || a.picture_big || a.picture_medium || 'https://source.unsplash.com/200x200/?artist',
         }));
         setTopArtists(shuffleArray(artists));
       })
@@ -70,63 +71,74 @@ export default function HomeLanding() {
   }, []);
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      {/* Sidebar */}
-      <Sidebar className="hidden md:flex flex-col w-64 bg-white shadow-lg" />
+    <div className="flex h-screen bg-gray-50 overflow-hidden">
+      {/* Sidebar (hidden on mobile) */}
+      <Sidebar className="hidden md:flex flex-col w-64 bg-white shadow-lg fixed left-0 top-0 bottom-0 overflow-y-auto" />
 
-      {/* Main */}
-      <div className="flex-1 px-8 py-12 overflow-x-hidden">
-        {/* Hero */}
-        <section className="w-full mb-12">
-          <div className="w-full max-w-[1400px] mx-auto flex flex-col md:flex-row items-center gap-10 bg-gradient-to-r from-[#4facfe] to-[#00f2fe] p-14 rounded-[2rem] shadow-xl text-white">
-            <div className="flex-1 max-w-xl">
-              <p className="inline-flex items-center gap-2 rounded-full bg-white/20 px-4 py-1 text-sm backdrop-blur">
-                <Sparkles className="h-4 w-4" /> Discover new vibes
-              </p>
-              <h1 className="mt-4 text-4xl md:text-6xl font-extrabold leading-tight">
-                Your next favorite track is a search away
-              </h1>
-              <p className="mt-3 text-white/90 text-lg">
-                Search artists, albums, and tracks. Preview instantly. Save your favorites.
-              </p>
+      {/* Main content */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="flex-1 overflow-y-auto px-4 sm:px-6 md:px-8 py-8 md:pl-72">
+          {/* Hero */}
+          <section className="w-full mb-8">
+            <div className="w-full max-w-[1400px] mx-auto flex flex-col md:flex-row items-center gap-8 bg-gradient-to-r from-[#4facfe] to-[#00f2fe] p-8 md:p-14 rounded-[2rem] shadow-xl text-white">
+              <div className="flex-1 max-w-xl">
+                <p className="inline-flex items-center gap-2 rounded-full bg-white/20 px-3 py-1 text-sm backdrop-blur">
+                  <Sparkles className="h-4 w-4" /> Discover new vibes
+                </p>
+                <h1 className="mt-4 text-3xl sm:text-4xl md:text-6xl font-extrabold leading-tight">
+                  Your next favorite track is a search away
+                </h1>
+                <p className="mt-3 text-white/90 text-base sm:text-lg">
+                  Search artists, albums, and tracks. Preview instantly. Save your favorites.
+                </p>
 
-              <div className="mt-6 flex flex-wrap gap-4">
-                {chips.map(({ label, href, icon: Icon }) => (
-                  <Link key={label} href={href}
-                    className="group inline-flex items-center gap-2 rounded-full bg-white/90 px-5 py-2 text-[#0b69b7] hover:bg-white transition shadow-md">
-                    <Icon className="h-5 w-5 opacity-80" />
-                    <span>{label}</span>
-                    <ArrowRight className="h-5 w-5 translate-x-0 group-hover:translate-x-1 transition" />
-                  </Link>
-                ))}
+                <div className="mt-6 flex flex-wrap gap-3">
+                  {chips.map(({ label, href, icon: Icon }) => (
+                    <Link key={label} href={href}
+                      className="group inline-flex items-center gap-2 rounded-full bg-white/90 px-4 py-2 text-[#0b69b7] hover:bg-white transition shadow-md">
+                      <Icon className="h-5 w-5 opacity-80" />
+                      <span className="text-sm sm:text-base">{label}</span>
+                      <ArrowRight className="h-5 w-5 translate-x-0 group-hover:translate-x-1 transition" />
+                    </Link>
+                  ))}
+                </div>
+              </div>
+              <div className="flex-1 h-64 sm:h-80 md:h-96 w-full relative">
+                <img
+                  src="https://source.unsplash.com/600x400/?music,concert"
+                  alt="Hero Banner"
+                  className="w-full h-full object-cover rounded-[2rem] shadow-lg"
+                />
               </div>
             </div>
-            <div className="flex-1 h-96 w-full relative">
-              <img src="/hero-music.png" alt="Hero Banner" className="w-full h-full object-cover rounded-[2rem] shadow-lg" />
-            </div>
-          </div>
-        </section>
+          </section>
 
-        {/* Playlists */}
-        <section className="w-full mb-16">
-          <ScrollRow title="Browse Playlists" className="px-0">
-            {featured.map((p) => (
-              <PlaylistCard
-                key={p.id ?? p.title}
-                title={p.title}
-                subtitle={p.sub}
-                image={p.image || '/placeholder.svg'}
-                href={p.id ? `/playlist/${p.id}?back=${encodeURIComponent('/')}` : `/?q=${encodeURIComponent(p.title)}&tab=tracks`}
-                className="rounded-xl shadow-md hover:shadow-xl transition w-[220px] md:w-[280px]"
-              />
-            ))}
-          </ScrollRow>
-        </section>
+          {/* Playlists */}
+          <section className="w-full mb-12">
+            <ScrollRow title="Browse Playlists" className="px-0">
+              {featured.map((p) => (
+                <PlaylistCard
+                  key={p.id ?? p.title}
+                  title={p.title}
+                  subtitle={p.sub}
+                  image={p.image || 'https://source.unsplash.com/600x400/?music'}
+                  href={p.id ? `/playlist/${p.id}?back=${encodeURIComponent('/')}` : `/?q=${encodeURIComponent(p.title)}&tab=tracks`}
+                  className="rounded-xl shadow-md hover:shadow-xl transition w-[180px] sm:w-[220px] md:w-[280px]"
+                />
+              ))}
+            </ScrollRow>
+          </section>
 
-        {/* Artists */}
-        <section className="w-full">
-          <AvatarBelt title="Explore Artists" items={topArtists} cardWidth="w-32 md:w-40" />
-        </section>
+          {/* Artists */}
+          <section className="w-full mb-8">
+            <AvatarBelt title="Explore Artists" items={topArtists} cardWidth="w-24 sm:w-32 md:w-40" />
+          </section>
+        </div>
+
+        {/* Music Player fixed at bottom */}
+        <div className="w-full h-20 sm:h-24 bg-white shadow-inner flex-shrink-0">
+          <MusicPlayer />
+        </div>
       </div>
     </div>
   );
