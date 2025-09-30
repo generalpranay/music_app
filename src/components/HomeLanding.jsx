@@ -71,18 +71,18 @@ export default function HomeLanding() {
   }, []);
 
   return (
-    <div className="flex h-screen bg-gray-50 overflow-hidden">
+    <div className="flex min-h-screen bg-gray-50 overflow-hidden">
       {/* Sidebar (hidden on mobile) */}
       <Sidebar className="hidden md:flex flex-col w-64 bg-white shadow-lg fixed left-0 top-0 bottom-0 overflow-y-auto" />
 
       {/* Main content */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        <div className="flex-1 overflow-y-auto px-4 sm:px-6 md:px-8 py-8 md:pl-72">
+        <div className="flex-1 overflow-y-auto py-12 px-4 sm:px-6 md:px-8 py-8 md:pl-19">
           {/* Hero */}
-          <section className="w-full mb-8">
+          <section className="w-full mb-12">
             <div className="w-full max-w-[1400px] mx-auto flex flex-col md:flex-row items-center gap-8 bg-gradient-to-r from-[#4facfe] to-[#00f2fe] p-8 md:p-14 rounded-[2rem] shadow-xl text-white">
               <div className="flex-1 max-w-xl">
-                <p className="inline-flex items-center gap-2 rounded-full bg-white/20 px-3 py-1 text-sm backdrop-blur">
+                <p className="inline-flex items-center gap-2 rounded-full bg-white/20 px-4 py-1 text-sm backdrop-blur">
                   <Sparkles className="h-4 w-4" /> Discover new vibes
                 </p>
                 <h1 className="mt-4 text-3xl sm:text-4xl md:text-6xl font-extrabold leading-tight">
@@ -105,7 +105,7 @@ export default function HomeLanding() {
               </div>
               <div className="flex-1 h-64 sm:h-80 md:h-96 w-full relative">
                 <img
-                  src="https://source.unsplash.com/600x400/?music,concert"
+                  src="https://www.ey.com/adobe/dynamicmedia/deliver/dm-aid--1fcca484-e681-4712-8667-6849a1ae7a33/ey-rear-view-people-enjoying-music-concert.jpg?width=2400&preferwebp=true&quality=85"
                   alt="Hero Banner"
                   className="w-full h-full object-cover rounded-[2rem] shadow-lg"
                 />
